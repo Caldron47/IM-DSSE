@@ -4,6 +4,7 @@
 #include "struct_MatrixType.h"
 #include "struct_SearchToken.h"
 #include "config.h"
+#include <map>
 
 
 
@@ -25,7 +26,8 @@ private:
         vector<TYPE_INDEX> &lstFree_keyword_idx,
         vector<TYPE_INDEX> &lstFree_file_idx,
 		string path,
-		MasterKey *pKey);
+		MasterKey *pKey,
+		map<TYPE_INDEX, string> &reverse_file_map);
         
     int createEncrypted_matrix_from_kw_file_pair(vector<vector<TYPE_INDEX>> &kw_file_pair,
                                                     TYPE_COUNTER* row_counter_arr,

@@ -599,6 +599,7 @@ int Miscellaneous::writeHash_table(TYPE_GOOGLE_DENSE_HASH_MAP &rT, string filena
         fwrite(&curIdx,sizeof(TYPE_INDEX),1,foutput);
     }
     fclose(foutput);
+    return 0;
 }
 int Miscellaneous::readHash_table(TYPE_GOOGLE_DENSE_HASH_MAP &rT, string filename, string path, TYPE_INDEX n)
 {
@@ -616,6 +617,7 @@ int Miscellaneous::readHash_table(TYPE_GOOGLE_DENSE_HASH_MAP &rT, string filenam
         rT[trapdoor] = curIdx;
     }
     fclose(finput);
+    return 0;
 }
 std::string Miscellaneous::to_string(TYPE_INDEX value)
 {

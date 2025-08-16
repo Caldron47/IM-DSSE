@@ -37,7 +37,7 @@ private:
 
     // Hash map where the trapdoors for the keywords are stored
 	TYPE_GOOGLE_DENSE_HASH_MAP T_W;
-
+	
 	// Static hash map where the trapdoors for the files are stored
 	TYPE_GOOGLE_DENSE_HASH_MAP T_F;
 
@@ -63,8 +63,8 @@ public:
     
     
     int searchKeyword(string keyword, TYPE_COUNTER &number);
-    int addFile(string filename, string path);
-    int delFile(string filename, string path);
+    TYPE_INDEX addFile(string filename, string path);
+    TYPE_INDEX delFile(string filename, string path);
     
 
 
@@ -77,6 +77,7 @@ public:
     static void* thread_precomputeAesKey_func(void* param);
     static void* thread_getSearchData_func(void* param);
     static void* thread_getUpdateData_func(void* param);
+	
 };
 
 #endif // CLIENT_DSSE_H

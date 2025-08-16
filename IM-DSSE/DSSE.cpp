@@ -9,6 +9,9 @@
 #include "climits"
 #include "Client_DSSE.h"
 #include "math.h"
+#include <map>      
+#include <fstream>  
+
 DSSE::DSSE()
 {
     //register the PRNG with Fortuna
@@ -64,102 +67,113 @@ DSSE::~DSSE()
  * @return	0 if successful
  */
 int DSSE::setupData_structure(
-		TYPE_GOOGLE_DENSE_HASH_MAP &rT_W,
-		TYPE_GOOGLE_DENSE_HASH_MAP &rT_F,
-        TYPE_COUNTER *pKeywordCounterArray,
-        TYPE_COUNTER *pBlockCounterArray,
-        MatrixType **pBlockStateMatrix,
-        vector<TYPE_INDEX> &lstFree_column_idx,
-        vector<TYPE_INDEX> &lstFree_row_idx,
-		vector<string> &rFileNames,
-		string path,
-		MasterKey *pKey)
+    TYPE_GOOGLE_DENSE_HASH_MAP &rT_W,
+    TYPE_GOOGLE_DENSE_HASH_MAP &rT_F,
+    TYPE_COUNTER *pKeywordCounterArray,
+    TYPE_COUNTER *pBlockCounterArray,
+    MatrixType **pBlockStateMatrix,
+    vector<TYPE_INDEX> &lstFree_column_idx,
+    vector<TYPE_INDEX> &lstFree_row_idx,
+    vector<string> &rFileNames,
+    string path,
+    MasterKey *pKey)
 {
-	set<string>::iterator iter;
-    
+    set<string>::iterator iter;
     unsigned char empty_label[6] = "EMPTY";
     unsigned char delete_label[7] = "DELETE";
-    hashmap_key_class empty_key = hashmap_key_class(empty_label,6);
-    hashmap_key_class delete_key = hashmap_key_class(delete_label,7);
-    
+    hashmap_key_class empty_key = hashmap_key_class(empty_label, 6);
+    hashmap_key_class delete_key = hashmap_key_class(delete_label, 7);
 
-	try
+    // MODIFIKASI: Buat map untuk menyimpan nama file asli
+    map<TYPE_INDEX, string> reverse_file_map;
+
+    try
     {
-        rT_W = TYPE_GOOGLE_DENSE_HASH_MAP(MAX_NUM_KEYWORDS*KEYWORD_LOADING_FACTOR);
+        rT_W = TYPE_GOOGLE_DENSE_HASH_MAP(MAX_NUM_KEYWORDS * KEYWORD_LOADING_FACTOR);
         rT_W.max_load_factor(KEYWORD_LOADING_FACTOR);
-		rT_W.min_load_factor(0.0);
+        rT_W.min_load_factor(0.0);
         rT_W.set_empty_key(empty_key);
-		rT_W.set_deleted_key(delete_key);
+        rT_W.set_deleted_key(delete_key);
 
-		rT_F = TYPE_GOOGLE_DENSE_HASH_MAP(MAX_NUM_OF_FILES*KEYWORD_LOADING_FACTOR);
+        rT_F = TYPE_GOOGLE_DENSE_HASH_MAP(MAX_NUM_OF_FILES * FILE_LOADING_FACTOR);
         rT_F.max_load_factor(FILE_LOADING_FACTOR);
-		rT_F.min_load_factor(0.0);
-		rT_F.set_empty_key(empty_key);
-		rT_F.set_deleted_key(delete_key);
-        
+        rT_F.min_load_factor(0.0);
+        rT_F.set_empty_key(empty_key);
+        rT_F.set_deleted_key(delete_key);
+
         lstFree_column_idx.reserve(MAX_NUM_OF_FILES);
         lstFree_column_idx.clear();
         lstFree_row_idx.reserve(MAX_NUM_KEYWORDS);
         lstFree_row_idx.clear();
-        
-        for(TYPE_INDEX j = 0 ; j < MAX_NUM_KEYWORDS; j++)
+
+        for (TYPE_INDEX j = 0; j < MAX_NUM_KEYWORDS; j++)
             lstFree_row_idx.push_back(j);
-        for (TYPE_INDEX j = 0 ; j < MAX_NUM_OF_FILES; j++)
-            lstFree_column_idx.push_back(j);        
-        for(TYPE_INDEX i = 0 ; i < MAX_NUM_KEYWORDS;i++)
+        for (TYPE_INDEX j = 0; j < MAX_NUM_OF_FILES; j++)
+            lstFree_column_idx.push_back(j);
+        for (TYPE_INDEX i = 0; i < MAX_NUM_KEYWORDS; i++)
             pKeywordCounterArray[i] = 1;
-        for(TYPE_INDEX i = 0 ; i < MAX_NUM_OF_FILES/ENCRYPT_BLOCK_SIZE;i++)
+        for (TYPE_INDEX i = 0; i < MAX_NUM_OF_FILES / ENCRYPT_BLOCK_SIZE; i++)
             pBlockCounterArray[i] = 1;
 
-        printf("   1.0 Scanning whole database first....");
-        this->scanDatabase(rFileNames,keywords_dictionary,rT_W,rT_F,path,pKey);
-        if(keywords_dictionary.size() >= MAX_NUM_KEYWORDS)
+        printf("    1.0 Scanning whole database first....");
+        this->scanDatabase(rFileNames, keywords_dictionary, rT_W, rT_F, path, pKey);
+        if (keywords_dictionary.size() >= MAX_NUM_KEYWORDS)
         {
             printf("Error!\n The encrypted index size is not enough to handle all keywords in the DB, please increase the MAX_NUM_KEYWORDS in config.h\n");
             exit(1);
         }
-        
         if (rFileNames.size() >= MAX_NUM_OF_FILES)
         {
             printf("Error!\n The encrypted index size is not enough to handle all files in the DB, please increase the MAX_NUM_OF_FILES in config.h\n");
             exit(1);
         }
         printf("OK!\n");
-        cout<<"# unique kw: "<<keywords_dictionary.size()<<endl;
-        cout<<"# unique files: "<<rFileNames.size()<<endl;
+        cout << "# unique kw: " << keywords_dictionary.size() << endl;
+        cout << "# unique files: " << rFileNames.size() << endl;
 
-        printf("   1.1. Creating keyword and file pairs...");
+        printf("    1.1. Creating keyword and file pairs...");
         vector<vector<TYPE_INDEX>> kw_file_pair;
         kw_file_pair.reserve(MAX_NUM_OF_FILES);
-        for(TYPE_INDEX col = 0 ; col <MAX_NUM_OF_FILES; col++)
+        for (TYPE_INDEX col = 0; col < MAX_NUM_OF_FILES; col++)
         {
             vector<TYPE_INDEX> tmp;
             kw_file_pair.push_back(tmp);
         }
         auto start = time_now;
-        this->createKeyword_file_pair(kw_file_pair,rT_W,rT_F,lstFree_row_idx, lstFree_column_idx, path,pKey);
+        
+        this->createKeyword_file_pair(kw_file_pair, rT_W, rT_F, lstFree_row_idx, lstFree_column_idx, path, pKey, reverse_file_map);
+        
         printf("OK!\n");
-        printf("   1.1. Creating encrypted matrix...");
-        this->createEncrypted_matrix_from_kw_file_pair(kw_file_pair, pKeywordCounterArray,pBlockCounterArray,pKey);
-		printf("OK!\n");
+
+        // MODIFIKASI: Tulis reverse map ke file setelah selesai dipopulasi
+        string rev_map_path = gcsDataStructureFilepath + "reverse_map.txt";
+        ofstream rev_map_file(rev_map_path.c_str());
+        if (rev_map_file.is_open())
+        {
+            for (map<TYPE_INDEX, string>::iterator it = reverse_file_map.begin(); it != reverse_file_map.end(); ++it)
+            {
+                rev_map_file << it->first << " " << it->second << endl;
+            }
+            rev_map_file.close();
+        }
+
+        printf("    1.1. Creating encrypted matrix...");
+        this->createEncrypted_matrix_from_kw_file_pair(kw_file_pair, pKeywordCounterArray, pBlockCounterArray, pKey);
+        printf("OK!\n");
         auto end = time_now;
-        cout<<"BUILDING TIME: "<<std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count()<<" ms"<<endl;
-    #if !defined(DECRYPT_AT_CLIENT_SIDE)
-        printf("   1.2. Creating block state matrix...");
+        cout << "BUILDING TIME: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << endl;
+#if !defined(DECRYPT_AT_CLIENT_SIDE)
+        printf("    1.2. Creating block state matrix...");
         this->createBlock_state_matrix_files();
         printf("OK!\n");
-    #endif
-    
-            
-	}
-    catch(exception &e)
+#endif
+    }
+    catch (exception &e)
     {
-		printf("Error!\n");
+        printf("Error!\n");
         exit(1);
-	}
-
-
-	return 0;
+    }
+    return 0;
 }
 
 /**
@@ -1473,134 +1487,129 @@ int DSSE::scanDatabase(
  * @return	0 if successful
  */
 int DSSE::createKeyword_file_pair(
-        vector<vector<TYPE_INDEX>> &kw_file_pair,
-		TYPE_GOOGLE_DENSE_HASH_MAP &rT_W,
-		TYPE_GOOGLE_DENSE_HASH_MAP &rT_F,
-        vector<TYPE_INDEX> &lstFree_keyword_idx,
-        vector<TYPE_INDEX> &lstFree_file_idx,
-		string path,
-		MasterKey *pKey)
+    vector<vector<TYPE_INDEX>> &kw_file_pair,
+    TYPE_GOOGLE_DENSE_HASH_MAP &rT_W,
+    TYPE_GOOGLE_DENSE_HASH_MAP &rT_F,
+    vector<TYPE_INDEX> &lstFree_keyword_idx,
+    vector<TYPE_INDEX> &lstFree_file_idx,
+    string path,
+    MasterKey *pKey,
+    map<TYPE_INDEX, string> &reverse_file_map) // Menambahkan parameter reverse map
 {
-	int keyword_len = 0;
-	TYPE_INDEX row = 0,file_index = 0;
-	unsigned char keyword_trapdoor[TRAPDOOR_SIZE];
-	unsigned char file_trapdoor[TRAPDOOR_SIZE];
-	string word;
-	DIR *pDir;
-	struct dirent *pEntry;
-	struct stat file_stat;
-	string file_name, file_name_with_path;
-	TYPE_KEYWORD_DICTIONARY words_per_file;
-	set<string>::iterator iter;
+    int keyword_len = 0;
+    TYPE_INDEX row = 0, file_index = 0;
+    unsigned char keyword_trapdoor[TRAPDOOR_SIZE];
+    unsigned char file_trapdoor[TRAPDOOR_SIZE];
+    string word;
+    DIR *pDir;
+    struct dirent *pEntry;
+    struct stat file_stat;
+    string file_name, file_name_with_path;
+    TYPE_KEYWORD_DICTIONARY words_per_file;
+    set<string>::iterator iter;
 
-    KeywordExtraction* kw_ex = new KeywordExtraction();
-    DSSE_Trapdoor* dsse_trapdoor = new DSSE_Trapdoor();
-    
+    KeywordExtraction *kw_ex = new KeywordExtraction();
+    DSSE_Trapdoor *dsse_trapdoor = new DSSE_Trapdoor();
+
     TYPE_INDEX selectedIdx;
     try
     {
-		if((pDir=opendir(path.c_str())) != NULL)
+        if ((pDir = opendir(path.c_str())) != NULL)
         {
-			while((pEntry = readdir(pDir))!=NULL)
+            while ((pEntry = readdir(pDir)) != NULL)
             {
-				file_name = pEntry->d_name;
-                // look into pEntry 
-				if(!file_name.compare(".") || !file_name.compare("..")) 
+                file_name = pEntry->d_name;
+                if (!file_name.compare(".") || !file_name.compare(".."))
                 {
-					continue;
-				}
-				else
+                    continue;
+                }
+                else
                 {
-					file_name_with_path = path + pEntry->d_name; 
-					// If the file is a directory (or is in some way invalid) we'll skip it
-					if (stat(file_name_with_path.c_str(), &file_stat)) 
+                    file_name_with_path = path + pEntry->d_name;
+                    if (stat(file_name_with_path.c_str(), &file_stat))
                         continue;
-					if (S_ISDIR(file_stat.st_mode))
+                    if (S_ISDIR(file_stat.st_mode))
                     {
-						file_name_with_path.append("/");
-						createKeyword_file_pair(kw_file_pair, rT_W, rT_F, lstFree_keyword_idx, lstFree_file_idx, file_name_with_path, pKey);
-						continue;
-					}
-					if(file_name_with_path.size() > 0)
-                    {
-						dsse_trapdoor->generateTrapdoor_single_input(file_trapdoor, TRAPDOOR_SIZE,	
-								(unsigned char *)file_name_with_path.c_str(), 
-								file_name_with_path.size(), pKey);
+                        file_name_with_path.append("/");
+                        createKeyword_file_pair(kw_file_pair, rT_W, rT_F, lstFree_keyword_idx, lstFree_file_idx, file_name_with_path, pKey, reverse_file_map); // Panggil rekursif dengan parameter tambahan
+                        continue;
                     }
-					else
-						printf("File name is empty\n");
+                    if (file_name_with_path.size() > 0)
+                    {
+                        dsse_trapdoor->generateTrapdoor_single_input(file_trapdoor, TRAPDOOR_SIZE,
+                                                                    (unsigned char *)file_name_with_path.c_str(),
+                                                                    file_name_with_path.size(), pKey);
+                    }
+                    else
+                        printf("File name is empty\n");
 
-					hashmap_key_class hmap_file_trapdoor(file_trapdoor,TRAPDOOR_SIZE);
-                    
-					// Get the file index from the hashmap
-                    if(rT_F[hmap_file_trapdoor] == FILE_NOT_EXIST)
+                    hashmap_key_class hmap_file_trapdoor(file_trapdoor, TRAPDOOR_SIZE);
+
+                    if (rT_F[hmap_file_trapdoor] == FILE_NOT_EXIST)
                     {
-                        this->pickRandom_element(selectedIdx,lstFree_file_idx,&prng);
+                        this->pickRandom_element(selectedIdx, lstFree_file_idx, &prng);
                         rT_F[hmap_file_trapdoor] = selectedIdx;
-                    }	
-                   
+                        
+                        // MODIFIKASI: Simpan nama file asli ke map
+                        reverse_file_map[selectedIdx] = file_name;
+                    }
+
                     kw_ex->extractKeywords(words_per_file, file_name, path);
-                    
-                    for(iter=words_per_file.begin();iter != words_per_file.end();iter++) 
+
+                    for (iter = words_per_file.begin(); iter != words_per_file.end(); iter++)
                     {
-						word = *iter;
-						keyword_len = word.size();
-                        if(keyword_len>0)
+                        word = *iter;
+                        keyword_len = word.size();
+                        if (keyword_len > 0)
                         {
-							dsse_trapdoor->generateTrapdoor_single_input(keyword_trapdoor, TRAPDOOR_SIZE, 
-									(unsigned char *)word.c_str(), keyword_len, pKey);
+                            dsse_trapdoor->generateTrapdoor_single_input(keyword_trapdoor, TRAPDOOR_SIZE,
+                                                                         (unsigned char *)word.c_str(), keyword_len, pKey);
                         }
-						else
+                        else
                         {
                             continue;
                         }
-						hashmap_key_class hmap_keyword_trapdoor(keyword_trapdoor,TRAPDOOR_SIZE);
-    
-                        if(rT_W[hmap_keyword_trapdoor] == KEYWORD_NOT_EXIST)
+                        hashmap_key_class hmap_keyword_trapdoor(keyword_trapdoor, TRAPDOOR_SIZE);
+
+                        if (rT_W[hmap_keyword_trapdoor] == KEYWORD_NOT_EXIST)
                         {
-                            this->pickRandom_element(selectedIdx,lstFree_keyword_idx,&prng);
+                            this->pickRandom_element(selectedIdx, lstFree_keyword_idx, &prng);
                             rT_W[hmap_keyword_trapdoor] = selectedIdx;
-                            
                         }
 
                         row = rT_W[hmap_keyword_trapdoor];
-
                         file_index = rT_F[hmap_file_trapdoor];
-                        
-                        //build the keyword file pair
                         kw_file_pair[file_index].push_back(row);
-                    
-						word.clear();
-					}
-					words_per_file.clear();
-					file_name_with_path.clear();
-				}
-				file_name.clear();
-			}
-
-			closedir(pDir);
-		}
-		else
+                        word.clear();
+                    }
+                    words_per_file.clear();
+                    file_name_with_path.clear();
+                }
+                file_name.clear();
+            }
+            closedir(pDir);
+        }
+        else
         {
-			printf("Could not locate the directory...\n");
-		}
-	}
-    catch(exception &e)
+            printf("Could not locate the directory...\n");
+        }
+    }
+    catch (exception &e)
     {
         printf("Error!!\n");
         exit(1);
-	}
+    }
 
-    memset(keyword_trapdoor,0,TRAPDOOR_SIZE);
-	memset(file_trapdoor,0,TRAPDOOR_SIZE);
-	word.clear();
-	delete pEntry;
-	file_name.clear(); 
+    memset(keyword_trapdoor, 0, TRAPDOOR_SIZE);
+    memset(file_trapdoor, 0, TRAPDOOR_SIZE);
+    word.clear();
+    // delete pEntry; // Ini bisa menyebabkan error jika pDir NULL
+    file_name.clear();
     file_name_with_path.clear();
-	words_per_file.clear();
-	delete kw_ex;
+    words_per_file.clear();
+    delete kw_ex;
     delete dsse_trapdoor;
-	
+
     return 0;
 }
 

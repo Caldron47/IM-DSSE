@@ -1,0 +1,45 @@
+Tentu saja. Menambahkan tahap "Identifikasi Masalah" di awal adalah langkah yang sangat tepat dan memperkuat logika metodologi penelitian Anda. Ini menunjukkan bahwa penelitian Anda berakar dari masalah nyata sebelum mencari solusi teoretis.
+
+Berikut adalah usulan revisi untuk subbab Alur Penelitian Anda.
+
+-----
+
+### **3.2 Alur Penelitian**
+
+Penelitian ini dilaksanakan melalui serangkaian tahapan yang sistematis dan berurutan untuk memastikan tujuan penelitian tercapai secara efektif. Alur penelitian ini dimulai dari identifikasi masalah, studi literatur untuk membangun fondasi teoretis, dilanjutkan dengan perancangan dan implementasi sistem, pengujian, hingga analisis akhir dan penarikan kesimpulan.
+
+#### **3.2.1 Diagram Alur Penelitian**
+
+Alur kerja penelitian ini diilustrasikan secara visual pada diagram dalam Gambar 3.x.
+
+```mermaid
+graph TD
+    A[1. Identifikasi Masalah] --> B[2. Studi Literatur];
+    B --> C[3. Persiapan Lingkungan & Bahan];
+    C --> D[4. Perancangan & Implementasi Prototipe];
+    D --> E[5. Pengujian Fungsional];
+    E --> F[6. Pengujian Kinerja];
+    F --> G[7. Analisis Hasil & Penarikan Kesimpulan];
+
+    %% Styling
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style G fill:#f9f,stroke:#333,stroke-width:2px
+```
+
+**Gambar 3.x**: Diagram Alur Penelitian
+
+#### **3.2.2 Penjelasan Tahapan Penelitian**
+
+1.  **Identifikasi Masalah**: Tahap paling awal adalah mengidentifikasi masalah utama yang melatarbelakangi penelitian. Masalah ini adalah adanya dilema fungsionalitas versus privasi pada platform *cloud storage* Nextcloud, di mana aktivasi fitur Enkripsi *End-to-End* (E2EE) menyebabkan hilangnya kemampuan pencarian konten (*full-text search*), sebuah fitur yang krusial untuk produktivitas pengguna.
+
+2.  **Studi Literatur**: Berdasarkan masalah yang telah diidentifikasi, dilakukan studi literatur yang mendalam untuk mencari solusi teoretis. Kegiatan ini mencakup analisis konsep dasar kriptografi, arsitektur Nextcloud, serta tinjauan terhadap berbagai skema *Dynamic Searchable Symmetric Encryption* (DSSE) modern. Hasil dari tahap ini adalah pemilihan skema IM-DSSE sebagai metode yang paling sesuai untuk diimplementasikan.
+
+3.  **Persiapan Lingkungan dan Bahan**: Tahap ini berfokus pada penyiapan semua alat dan bahan yang diperlukan untuk implementasi dan pengujian. Ini termasuk instalasi dan konfigurasi server Nextcloud pada lingkungan WSL (Ubuntu 24.04), penyiapan lingkungan pengembangan C++ di Windows 11, serta pengunduhan dan pra-pemrosesan Enron Email Dataset untuk menghasilkan data terstruktur yang siap diuji.
+
+4.  **Perancangan dan Implementasi Prototipe**: Pada tahap ini, arsitektur integrasi dirancang, yang kemudian diwujudkan dalam bentuk prototipe. Implementasi ini mencakup tiga komponen utama: layanan *backend* DSSE (C++), API kustom pada server Nextcloud (PHP), dan sebuah klien simulasi (C++) untuk menjalankan operasi.
+
+5.  **Pengujian Fungsional**: Setelah prototipe selesai dibangun, dilakukan serangkaian pengujian fungsional. Tujuannya adalah untuk memverifikasi bahwa semua komponen sistem dapat berkomunikasi dengan benar dan setiap operasi (`Setup`, `Update Add`, `Update Delete`, dan `Search`) berjalan sesuai dengan fungsionalitas yang diharapkan.
+
+6.  **Pengujian Kinerja**: Ini adalah tahap evaluasi kuantitatif. Prototipe yang telah terverifikasi secara fungsional akan diuji kinerjanya menggunakan skenario dan metrik yang telah ditentukan. Data yang dikumpulkan mencakup **latensi operasi** dan **penggunaan sumber daya komputasi (CPU)** di sisi klien dan server.
+
+7.  **Analisis Hasil dan Penarikan Kesimpulan**: Tahap terakhir adalah menganalisis data kuantitatif dari pengujian kinerja dan hasil analisis kualitatif terhadap efektivitas solusi. Analisis *trade-off* antara fungsionalitas, privasi, dan performa akan dilakukan untuk menjawab seluruh rumusan masalah. Hasil sintesis dari analisis ini akan menjadi dasar untuk penarikan kesimpulan dan saran untuk penelitian selanjutnya.

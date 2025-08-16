@@ -1,0 +1,51 @@
+# Compiler & flags
+CXX := g++
+CXXFLAGS := -std=c++11 -Wall -g -O0 -fPIC
+INCLUDES := -I. -I/mingw64/include
+LDFLAGS := -L/mingw64/lib
+LIBS := -lzmq -lboost_iostreams-mt -ltomcrypt
+
+# Folders
+BUILDDIR := Debug
+
+# Target binary (di folder Debug)
+TARGET := $(BUILDDIR)/im-dsse-client.exe
+
+# Source files
+SRCS := \
+    Client_DSSE.cpp \
+    Krawczyk128_KDF.cpp \
+    MasterKey.cpp \
+    DSSE_KeyGen.cpp \
+    DSSE.cpp \
+    Miscellaneous.cpp \
+    DSSE_Hashmap_Key_Class.cpp \
+    DSSE_Trapdoor.cpp \
+    Keyword_Extraction.cpp \
+    DSSE_Crypto.cpp \
+    main.cpp \
+    struct_thread_getData.cpp \
+    struct_thread_precompute_aeskey.cpp
+
+# Object files (di folder Debug)
+OBJS := $(SRCS:%.cpp=$(BUILDDIR)/%.o)
+
+# Build rules
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(LIBS)
+
+# Rule untuk object
+$(BUILDDIR)/%.o: %.cpp | $(BUILDDIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+# Pastikan folder Debug ada
+$(BUILDDIR):
+	mkdir -p $(BUILDDIR)
+
+# Bersihkan hasil build
+clean:
+	rm -rf $(BUILDDIR)
+
+.PHONY: all clean

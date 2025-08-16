@@ -29,7 +29,7 @@ int Krawczyk128_KDF::generate_128_PRK(unsigned char *pPRK,
         return -1;
     }
 	
-	if(XTS_len>0 && PRK_len>0 && pSKM>0)
+	if(XTS_len>0 && PRK_len>0 && pSKM!=nullptr)
     {
 		cout << "Generating Pseudo Random Key..." << endl;
 		if ((error = omac_aes128(pPRK, BLOCK_CIPHER_SIZE, pXTS, XTS_len, pSKM)) != CRYPT_OK) {

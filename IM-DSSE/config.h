@@ -2,11 +2,11 @@
 #ifndef DSSE_PARAM_H
 #define DSSE_PARAM_H
 
-#define INTEL_AES_NI                        // Intel AES-NI library
+//#define INTEL_AES_NI                        // Intel AES-NI library
 
-#define VARIANT_III                           // 4 options: VARIANT_MAIN, VARIANT_I, VARIANT_II, VARIANT_III
+#define VARIANT_II                           // 4 options: VARIANT_MAIN, VARIANT_I, VARIANT_II, VARIANT_III
 #define DISK_STORAGE_MODE                 // Enable to store Encrypted index on HDD (RAM if disabled)
-//#define SEND_SEARCH_FILE_INDEX              // Search result contains specific file indexes
+#define SEND_SEARCH_FILE_INDEX              // Search result contains specific file indexes
 
 #define PEER_ADDRESS "tcp://localhost:5555"
 

@@ -169,7 +169,7 @@ int Server_DSSE::loadState()
     Miscellaneous::read_array_from_file(FILENAME_BLOCK_COUNTER_ARRAY,gcsDataStructureFilepath,this->block_counter_arr,NUM_BLOCKS);
     printf("OK!\n");
 #endif
-
+return 0;
 }
 
 
@@ -196,6 +196,7 @@ int Server_DSSE::saveState()
   #endif
   
     delete dsse;
+    return 0;
 #endif
 
 #if !defined(DECRYPT_AT_CLIENT_SIDE)
@@ -648,6 +649,7 @@ int Server_DSSE::loadData_from_file(int dim, TYPE_INDEX idx)
       #endif
     }
     delete dsse;
+	return 0;
 }
 
 /**
@@ -679,5 +681,6 @@ int Server_DSSE::saveData_to_file(int dim, TYPE_INDEX idx)
       #endif
     }
     delete dsse;
+	return 0;
 }
 
