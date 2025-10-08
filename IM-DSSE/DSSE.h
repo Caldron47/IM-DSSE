@@ -21,18 +21,20 @@ private:
         
     int createKeyword_file_pair(
         vector<vector<TYPE_INDEX>> &kw_file_pair,
-		TYPE_GOOGLE_DENSE_HASH_MAP &rT_W,
-		TYPE_GOOGLE_DENSE_HASH_MAP &rT_F,
+        TYPE_GOOGLE_DENSE_HASH_MAP &rT_W,
+        TYPE_GOOGLE_DENSE_HASH_MAP &rT_F,
         vector<TYPE_INDEX> &lstFree_keyword_idx,
         vector<TYPE_INDEX> &lstFree_file_idx,
-		string path,
-		MasterKey *pKey,
-		map<TYPE_INDEX, string> &reverse_file_map);
-        
-    int createEncrypted_matrix_from_kw_file_pair(vector<vector<TYPE_INDEX>> &kw_file_pair,
-                                                    TYPE_COUNTER* row_counter_arr,
-                                                    TYPE_COUNTER* block_counter_arr,
-                                                    MasterKey *pKey);
+        string path,
+        MasterKey *pKey,
+        map<TYPE_INDEX, string> &reverse_file_map,
+        TYPE_ENC_FILE_MAP &C);
+
+    int createEncrypted_matrix_from_kw_file_pair(
+        vector<vector<TYPE_INDEX>> &kw_file_pair, 
+        TYPE_COUNTER *row_counter_arr,
+        TYPE_COUNTER* block_counter_arr,
+        MasterKey *pKey);
 
     int pickRandom_element(TYPE_INDEX &randomIdx,vector<TYPE_INDEX> &setIdx,prng_state* prng);
     
@@ -58,7 +60,8 @@ public:
                             vector<TYPE_INDEX> &lstFree_row_idx,
                             vector<string> &rFileNames, 
                             string path,  
-                            MasterKey *pKey);
+                            MasterKey *pKey,
+                            TYPE_ENC_FILE_MAP &C); // MODIFIKASI: Tambahkan parameter C di sini
                                 
     int searchToken(SEARCH_TOKEN &pSearchToken, 
                     string keyword,

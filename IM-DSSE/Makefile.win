@@ -5,13 +5,10 @@ INCLUDES := -I. -I/mingw64/include
 LDFLAGS := -L/mingw64/lib
 LIBS := -lzmq -lboost_iostreams-mt -ltomcrypt
 
-# Folders
-BUILDDIR := Debug
+# Target binary
+TARGET := Debug/im-dsse-client.exe
 
-# Target binary (di folder Debug)
-TARGET := $(BUILDDIR)/im-dsse-client.exe
-
-# Source files
+# Source files for client only
 SRCS := \
     Client_DSSE.cpp \
     Krawczyk128_KDF.cpp \
@@ -27,8 +24,8 @@ SRCS := \
     struct_thread_getData.cpp \
     struct_thread_precompute_aeskey.cpp
 
-# Object files (di folder Debug)
-OBJS := $(SRCS:%.cpp=$(BUILDDIR)/%.o)
+# Object files (semua ke folder Debug)
+OBJS := $(SRCS:%.cpp=Debug/%.o)
 
 # Build rules
 all: $(TARGET)
@@ -36,16 +33,15 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(LIBS)
 
-# Rule untuk object
-$(BUILDDIR)/%.o: %.cpp | $(BUILDDIR)
+# Aturan untuk compile setiap .cpp ke Debug/*.o
+Debug/%.o: %.cpp | Debug
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 # Pastikan folder Debug ada
-$(BUILDDIR):
-	mkdir -p $(BUILDDIR)
+Debug:
+	mkdir -p Debug
 
-# Bersihkan hasil build
 clean:
-	rm -rf $(BUILDDIR)
+	rm -f Debug/*.o $(TARGET)
 
 .PHONY: all clean

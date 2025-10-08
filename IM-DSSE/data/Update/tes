@@ -1,4 +1,4 @@
-Tentu saja. Menambahkan tahap "Identifikasi Masalah" di awal adalah langkah yang sangat tepat dan memperkuat logika metodologi penelitian Anda. Ini menunjukkan bahwa penelitian Anda berakar dari masalah nyata sebelum mencari solusi teoretis.
+asvs Tentu saja. Menambahkan tahap "Identifikasi Masalah" di awal adalah langkah yang sangat tepat dan memperkuat logika metodologi penelitian Anda. Ini menunjukkan bahwa penelitian Anda berakar dari masalah nyata sebelum mencari solusi teoretis.
 
 Berikut adalah usulan revisi untuk subbab Alur Penelitian Anda.
 
@@ -43,3 +43,5 @@ graph TD
 6.  **Pengujian Kinerja**: Ini adalah tahap evaluasi kuantitatif. Prototipe yang telah terverifikasi secara fungsional akan diuji kinerjanya menggunakan skenario dan metrik yang telah ditentukan. Data yang dikumpulkan mencakup **latensi operasi** dan **penggunaan sumber daya komputasi (CPU)** di sisi klien dan server.
 
 7.  **Analisis Hasil dan Penarikan Kesimpulan**: Tahap terakhir adalah menganalisis data kuantitatif dari pengujian kinerja dan hasil analisis kualitatif terhadap efektivitas solusi. Analisis *trade-off* antara fungsionalitas, privasi, dan performa akan dilakukan untuk menjawab seluruh rumusan masalah. Hasil sintesis dari analisis ini akan menjadi dasar untuk penarikan kesimpulan dan saran untuk penelitian selanjutnya.
+
+abcda abcde fghi JKL

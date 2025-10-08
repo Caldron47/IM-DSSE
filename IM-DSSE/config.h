@@ -13,8 +13,8 @@
 
 
 
-#define  MAX_NUM_OF_FILES 1024              // maximum number of keywords, should be power of 2 and divisible by 8
-#define  MAX_NUM_KEYWORDS 12000             // maximum number of files
+#define  MAX_NUM_OF_FILES 8192              // maximum number of keywords, should be power of 2 and divisible by 8
+#define  MAX_NUM_KEYWORDS 72155             // maximum number of files
 
 
 
@@ -49,6 +49,7 @@
 #include <chrono>
 #include "tomcrypt.h"
 #include "string.h"
+#include <unordered_map>
 
 
 const std::string SERVER_PORT = "5555";
@@ -83,7 +84,10 @@ static const string gcsMatrixPiecePath = "../data/EIDX/";
 static const string gcsFilepath = "../data/DB/";			                // path of input database
 
 static const string gcsUpdateFilepath = "../data/Update/";			        // Path of updated file
+static const string gcsEncryptedFileCollection = "EncryptedFileCollection.dat";			        // Path of ciphertext
 
+// MODIFIKASI: Tambahkan path untuk server menyimpan file terenkripsi
+static const string gcsServerEncryptedFilesPath = "..data/encrypted_files/";
 
 
 #define MATRIX_PIECE_ROW_SIZE MATRIX_ROW_SIZE //in bit
@@ -117,14 +121,22 @@ using namespace boost::algorithm;
 
 
 //Commands for Client - Server interaction
-#define CMD_SEND_DATA_STRUCTURE         0x000010
-#define CMD_LOADSTATE                   0x000011
-#define CMD_SAVESTATE                   0x000012
-#define CMD_SEARCH_OPERATION            0x000020
-#define CMD_REQUEST_BLOCK_DATA          0x000050
-#define CMD_REQUEST_SEARCH_DATA         0x000051
-#define CMD_UPDATE_BLOCK_DATA           0x000060
-#define CMD_SUCCESS                     "CMD_OK"
+#define CMD_SEND_DATA_STRUCTURE          0x000010
+#define CMD_LOADSTATE                    0x000011
+#define CMD_SAVESTATE                    0x000012
+// #define CMD_SETUP_UPLOAD_ENCRYPTED_FILES 0x000013 // Perintah ini tidak lagi digunakan, diganti dengan yang lebih spesifik
+#define CMD_ADD_FILE_OPERATION           0x000014
+#define CMD_DELETE_FILE_OPERATION        0x000015
+
+// MODIFIKASI: Perintah baru untuk mengirim satu file terenkripsi saat setup
+#define CMD_SETUP_SEND_ENCRYPTED_FILE    0x000016 
+#define CMD_REQUEST_ENCRYPTED_FILE       0x000017 // Perintah baru untuk dekripsi
+
+#define CMD_SEARCH_OPERATION             0x000020
+#define CMD_REQUEST_BLOCK_DATA           0x000050
+#define CMD_REQUEST_SEARCH_DATA          0x000051
+#define CMD_UPDATE_BLOCK_DATA            0x000060
+#define CMD_SUCCESS                      "CMD_OK"
 
 //define the default filename of some data structures in DSSE scheme
 #define FILENAME_BLOCK_STATE_MATRIX     "block_state_mat"
@@ -160,6 +172,7 @@ typedef unsigned long long int TYPE_COUNTER;
 typedef unsigned long long int TYPE_INDEX;
 typedef dense_hash_map<hashmap_key_class,TYPE_INDEX,hashmap_key_class,hashmap_key_class> TYPE_GOOGLE_DENSE_HASH_MAP;
 typedef set<string> TYPE_KEYWORD_DICTIONARY;
+typedef std::unordered_map<TYPE_INDEX, std::string> TYPE_ENC_FILE_MAP;
 
 static TYPE_KEYWORD_DICTIONARY keywords_dictionary;
 

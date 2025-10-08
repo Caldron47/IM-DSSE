@@ -7,6 +7,7 @@
 #include <tomcrypt.h>
 #include "DSSE.h"
 #include "math.h"
+#include "DSSE_Crypto.h"
 
 #include "zmq.hpp"
 using namespace zmq;
@@ -251,7 +252,6 @@ int Client_DSSE::loadState()
  */
 int Client_DSSE::sendFile(string filename, string path, int SENDING_TYPE)
 {
-
     int n; 
     
     FILE* finput = NULL;
@@ -261,6 +261,8 @@ int Client_DSSE::sendFile(string filename, string path, int SENDING_TYPE)
     off_t filesize, offset;
     off_t size_sent = 0;
     string filename_with_path = path + filename;
+
+    cout << "   file with path: " << filename_with_path << endl;
     
     zmq::context_t context(1);
     zmq::socket_t socket(context,ZMQ_REQ);
@@ -345,6 +347,88 @@ int Client_DSSE::sendFile(string filename, string path, int SENDING_TYPE)
     
 }
 
+// ... (tambahkan fungsi baru ini di mana saja di dalam file)
+int Client_DSSE::requestAndDecryptFile(TYPE_INDEX file_index)
+{
+    if (!this->masterKey) {
+        cout << "   ERROR: Master key belum dimuat. Silakan Load state terlebih dahulu." << endl;
+        return -1;
+    }
+
+    cout << "   Meminta file terenkripsi untuk indeks #" << file_index << " dari server..." << endl;
+
+    zmq::context_t context(1);
+    zmq::socket_t socket(context, ZMQ_REQ);
+    socket.connect(PEER_ADDRESS);
+
+    unsigned char buffer_out[SOCKET_BUFFER_SIZE] = { '\0' };
+    int cmd = CMD_REQUEST_ENCRYPTED_FILE;
+
+    // 1. Kirim perintah
+    memcpy(buffer_out, &cmd, sizeof(cmd));
+    socket.send(buffer_out, SOCKET_BUFFER_SIZE, ZMQ_SNDMORE);
+
+    // 2. Kirim indeks file
+    memset(buffer_out, 0, SOCKET_BUFFER_SIZE);
+    memcpy(buffer_out, &file_index, sizeof(TYPE_INDEX));
+    socket.send(buffer_out, SOCKET_BUFFER_SIZE, 0);
+
+    // 3. Terima ciphertext dari server
+    zmq::message_t file_content_msg;
+    socket.recv(&file_content_msg);
+    
+    int ciphertext_len = file_content_msg.size();
+    if (ciphertext_len == 0) {
+        cout << "   Server merespon, tetapi file tidak ditemukan atau kosong." << endl;
+        socket.disconnect(PEER_ADDRESS);
+        return -1;
+    }
+    
+    unsigned char* ciphertext = (unsigned char*)file_content_msg.data();
+    cout << "   Ciphertext diterima (" << ciphertext_len << " bytes)." << endl;
+
+    // 4. Dekripsi ciphertext
+    unsigned char* plaintext = new unsigned char[ciphertext_len + 1];
+    decrypt_buffer(this->masterKey->key1, ciphertext_len, ciphertext, plaintext);
+    plaintext[ciphertext_len] = '\0'; // Null-terminate
+
+    // 5. Tampilkan hasilnya
+    cout << "\n--- Isi File Asli ---" << endl;
+    cout << (char*)plaintext << endl;
+    cout << "----------------------" << endl;
+
+    delete[] plaintext;
+    socket.disconnect(PEER_ADDRESS);
+    return 0;
+}
+
+// MODIFIKASI: Tambahkan fungsi baru untuk mengirim satu file terenkripsi saat setup
+int Client_DSSE::sendSingleEncryptedFile(int cmd, TYPE_INDEX file_index, const string& file_ciphertext)
+{
+    zmq::context_t context(1);
+    zmq::socket_t socket(context, ZMQ_REQ);
+    socket.connect(PEER_ADDRESS);
+
+    unsigned char buffer_out[SOCKET_BUFFER_SIZE] = { '\0' };
+
+    // 1. Kirim perintah
+    memcpy(buffer_out, &cmd, sizeof(cmd));
+    socket.send(buffer_out, SOCKET_BUFFER_SIZE, ZMQ_SNDMORE);
+
+    // 2. Kirim indeks file
+    memset(buffer_out, 0, SOCKET_BUFFER_SIZE);
+    memcpy(buffer_out, &file_index, sizeof(TYPE_INDEX));
+    socket.send(buffer_out, SOCKET_BUFFER_SIZE, ZMQ_SNDMORE);
+    
+    // 3. Kirim konten file (ciphertext)
+    socket.send((unsigned char*)file_ciphertext.c_str(), file_ciphertext.length());
+    
+    // 4. Tunggu balasan konfirmasi (ACK) dari server
+    socket.recv(buffer_out, SOCKET_BUFFER_SIZE);
+    
+    socket.disconnect(PEER_ADDRESS);
+    return 0;
+}
 
 /**
  * Function Name: createEncrypted_data_structure
@@ -375,11 +459,16 @@ int Client_DSSE::createEncrypted_data_structure()
         
         files_input.reserve(MAX_NUM_OF_FILES);
         printf("2. Setting up data structure......\n");
+
+        // MODIFIKASI: Siapkan map untuk menampung file terenkripsi
+        TYPE_ENC_FILE_MAP C;
+
+        // Panggil setupData_structure yang sudah dimodifikasi
         if(dsse->setupData_structure( this->T_W,this->T_F,
                                     this->keyword_counter_arr, this->block_counter_arr, this->block_state_mat,
                                     this->lstFree_column_idx,this->lstFree_row_idx,
                                     files_input,gcsFilepath,
-                                    this->masterKey)!=0)
+                                    this->masterKey, C)!=0) // Tambahkan C di sini
         {
             printf("Error!\n");
             exit(1);
@@ -407,6 +496,17 @@ int Client_DSSE::createEncrypted_data_structure()
         
         printf("\n---ENCRYPTED INDEX CONSTRUCTION COMPLETED!---\n");
         this->sendEncryptedIndex();
+
+        // MODIFIKASI: Kirim setiap file terenkripsi satu per satu
+        printf("\n---UPLOADING ENCRYPTED FILE COLLECTION...---\n");
+        for (auto const& [file_idx, ciphertext] : C)
+        {
+            // cout << "   Uploading encrypted file #" << file_idx << "..." << endl;
+            this->sendSingleEncryptedFile(CMD_SETUP_SEND_ENCRYPTED_FILE, file_idx, ciphertext);
+        }
+        printf("---ENCRYPTED FILE COLLECTION UPLOADED!---\n");
+        // AKHIR MODIFIKASI
+
         this->sendCommandOnly(CMD_LOADSTATE); //trigger the server to load vital states into memory
     }
     catch (exception &ex)
@@ -454,7 +554,34 @@ int Client_DSSE::sendEncryptedIndex()
 {
     Miscellaneous misc;
     char choice = ' ';
-    do
+    printf("1. Sending Data Matrix I...");
+        int n = MATRIX_COL_SIZE / MATRIX_PIECE_COL_SIZE;        
+        for(int i = 0 ; i < n ; i++)
+        {
+            for(TYPE_INDEX m = 0 ; m < MATRIX_ROW_SIZE; m+=MATRIX_PIECE_ROW_SIZE)
+            {
+                string filename = misc.to_string(m) + "_" + misc.to_string(i*MATRIX_PIECE_COL_SIZE);
+                this->sendFile(filename,gcsMatrixPiecePath,CMD_SEND_DATA_STRUCTURE);
+            }
+        }
+        printf("OK!\n");
+    #if !defined(DECRYPT_AT_CLIENT_SIDE) 
+        printf("1. Sending State Matrix I.st...");
+        n = NUM_BLOCKS/BYTE_SIZE/BLOCK_STATE_PIECE_COL_SIZE;
+        for(int i = 0 ; i < n ; i++)
+        {
+            for(TYPE_INDEX m = 0 ; m < BLOCK_STATE_ROW_SIZE; m+=BLOCK_STATE_PIECE_ROW_SIZE)
+            {
+                string filename = "b_" + misc.to_string(m) + "_" + misc.to_string(i*BLOCK_STATE_PIECE_COL_SIZE);
+                this->sendFile(filename,gcsMatrixPiecePath,CMD_SEND_DATA_STRUCTURE);
+            }
+        }
+        printf("OK!\n");
+        printf("3. Sending block counter...");
+        this->sendFile(FILENAME_BLOCK_COUNTER_ARRAY,gcsDataStructureFilepath,CMD_SEND_DATA_STRUCTURE);
+        printf("OK!!\n");
+    #endif
+    /* do
     {
         cout << "       UPLOAD ENCRYPTED INDEX TO SERVER? (y/n)  \n **** ONLY SAY 'y' IF CLIENT AND SERVER ARE DEPLOYED IN TWO DIFFERENT MACHINES!! *** \n";
         cin >> choice;
@@ -495,7 +622,7 @@ int Client_DSSE::sendEncryptedIndex()
     else
     {
        this->sendCommandOnly(CMD_LOADSTATE);
-    }
+    } */
     
     return 0;
 }
@@ -882,9 +1009,33 @@ TYPE_INDEX Client_DSSE::addFile(string filename, string path)
         end = time_now;
         cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << endl;
 
+        printf("4. Encrypting file content...");
+        start = time_now;
+
+        // DSSE_Crypto crypto;
+
+        // hitung ukuran file
+        int file_len = Miscellaneous::read_filesize_cpp(adding_filename_with_path);
+
+        // alokasikan buffer plaintext & baca
+        unsigned char* plaintext = new unsigned char[file_len];
+        misc.read_file_cpp(plaintext, file_len, adding_filename_with_path);
+
+        // alokasikan buffer ciphertext
+        unsigned char* ciphertext = new unsigned char[file_len];
+
+        // enkripsi dengan AES-CTR
+        encrypt_buffer(this->masterKey->key1, file_len, plaintext, ciphertext);
+
+
+        end = time_now;
+        cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << endl;
+
         printf("5. Send updated column/block to server...");
         start = time_now;
         this->sendBlock_data(block_index, this->I_prime);
+        // Kirim file terenkripsi
+        this->send_encrypted_file(CMD_ADD_FILE_OPERATION, string((char*)ciphertext, file_len), file_index);
         end = time_now;
         cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << endl;
     }
@@ -976,6 +1127,8 @@ TYPE_INDEX Client_DSSE::delFile(string filename, string path)
         printf("5. Send updated data to server...");
         start = time_now;
         this->sendBlock_data(block_index, this->I_prime);
+        // MODIFIKASI: Kirim perintah untuk menghapus file fisik
+        this->send_encrypted_file(CMD_DELETE_FILE_OPERATION, "", file_index);
         end = time_now;
         cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << endl;
     }
@@ -986,6 +1139,38 @@ TYPE_INDEX Client_DSSE::delFile(string filename, string path)
     }
     delete dsse;
     return file_index; // Mengembalikan indeks file
+}
+
+// MODIFIKASI: Tambahkan fungsi baru ini untuk mengirim file
+int Client_DSSE::send_encrypted_file(int cmd, string file_ciphertext, TYPE_INDEX file_index)
+{
+    zmq::context_t context(1);
+    zmq::socket_t socket(context, ZMQ_REQ);
+    socket.connect(PEER_ADDRESS);
+
+    unsigned char buffer_out[SOCKET_BUFFER_SIZE] = { '\0' };
+
+    // Kirim perintah
+    memcpy(buffer_out, &cmd, sizeof(cmd));
+    socket.send(buffer_out, SOCKET_BUFFER_SIZE, ZMQ_SNDMORE);
+
+    // Kirim indeks file
+    memset(buffer_out, 0, SOCKET_BUFFER_SIZE);
+    memcpy(buffer_out, &file_index, sizeof(TYPE_INDEX));
+    
+    if(cmd == CMD_ADD_FILE_OPERATION) {
+        socket.send(buffer_out, SOCKET_BUFFER_SIZE, ZMQ_SNDMORE);
+        // Kirim konten file
+        socket.send((unsigned char*)file_ciphertext.c_str(), file_ciphertext.length());
+    } else { // Untuk delete, hanya kirim indeks
+        socket.send(buffer_out, SOCKET_BUFFER_SIZE);
+    }
+
+    // Tunggu balasan
+    socket.recv(buffer_out, SOCKET_BUFFER_SIZE);
+    
+    socket.disconnect(PEER_ADDRESS);
+    return 0;
 }
 
 int Client_DSSE::requestSearch_data(TYPE_INDEX row_index, MatrixType* I_prime) 

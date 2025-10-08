@@ -21,6 +21,9 @@ int aes128_ctr_encdec( unsigned char *pt, unsigned char *ct,  unsigned char *key
 
 int omac_aes128(unsigned char *omac_out, int omac_length, const unsigned char *data, int datalen, unsigned char *key);
 
+int encrypt_buffer(unsigned char* key, int len, unsigned char* plaintext, unsigned char* ciphertext);
+int decrypt_buffer(unsigned char* key, int len, unsigned char* ciphertext, unsigned char* plaintext);
+
 #if defined(INTEL_AES_NI)
 int omac_aesni_init(omac_state *omac, int cipher, unsigned char *key);
 int omac_aesni_process(omac_state *omac, unsigned char *key, const unsigned char *in, unsigned long inlen);

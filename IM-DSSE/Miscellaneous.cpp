@@ -32,6 +32,28 @@ void Miscellaneous::print_ucharstring(const unsigned char *pInput,
 	}
 }
 
+int Miscellaneous::write_enc_files_to_file(
+    std::string filename,
+    std::string path,
+    TYPE_ENC_FILE_MAP &C)
+{
+    std::string fullpath = path + filename;
+    std::ofstream fout(fullpath, std::ios::binary);
+    if(!fout.is_open()) return 0;
+
+    for(auto &kv : C)
+    {
+        TYPE_INDEX idx = kv.first;
+        const std::string &cipher = kv.second;
+        fout.write((char*)&idx, sizeof(TYPE_INDEX));
+        int len = cipher.size();
+        fout.write((char*)&len, sizeof(int));
+        fout.write(cipher.data(), len);
+    }
+    fout.close();
+    return 1;
+}
+
  int Miscellaneous::ucarray_to_int(int &rDestination,
                    unsigned char *pSource,
                    int source_length)

@@ -24,6 +24,8 @@ public:
     static int print_matrix_row(MatrixType **I,int row, TYPE_INDEX col_size);
     static int print_matrix_column(MatrixType **I,int col);
     
+    int write_enc_files_to_file(std::string filename, std::string path, TYPE_ENC_FILE_MAP &C);
+
     
     static int write_file_cpp(string file_name, unsigned char *pOutData, int out_len) ;
     static int read_file_cpp(unsigned char *pInData, int in_len, string file_name);

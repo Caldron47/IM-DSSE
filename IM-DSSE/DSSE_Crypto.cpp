@@ -91,12 +91,31 @@ int aes128_ctr_encdec( unsigned char *pt, unsigned char *ct, unsigned char *key,
         printf("Error starting AES-CTR: %s\n", error_to_string(err));
         exit(0);
     }
-    ctr_encrypt(pt,ct,BLOCK_CIPHER_SIZE,&symmetric_ctr);
+    ctr_encrypt(pt,ct,numBlocks,&symmetric_ctr);
     unregister_cipher(&aes_desc); 
 #endif
     //memcpy(ct,pt,BLOCK_CIPHER_SIZE);
     return 0;
     
+}
+
+// gunakan fungsi AES CTR internal
+int encrypt_buffer(unsigned char* key, int len, unsigned char* plaintext, unsigned char* ciphertext)
+{
+    unsigned char counter[BLOCK_CIPHER_SIZE];
+    memset(counter, 0, BLOCK_CIPHER_SIZE);
+
+    aes128_ctr_encdec(plaintext, ciphertext, key, counter, len);
+    return 0;
+}
+
+int decrypt_buffer(unsigned char* key, int len, unsigned char* ciphertext, unsigned char* plaintext)
+{
+    unsigned char counter[BLOCK_CIPHER_SIZE];
+    memset(counter, 0, BLOCK_CIPHER_SIZE);
+
+    aes128_ctr_encdec(ciphertext, plaintext, key, counter, len);
+    return 0;
 }
 
 #if defined (INTEL_AES_NI)

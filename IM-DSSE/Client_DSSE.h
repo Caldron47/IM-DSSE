@@ -65,14 +65,14 @@ public:
     int searchKeyword(string keyword, TYPE_COUNTER &number);
     TYPE_INDEX addFile(string filename, string path);
     TYPE_INDEX delFile(string filename, string path);
-    
-
+    int send_encrypted_file(int cmd, string file_ciphertext, TYPE_INDEX file_index);
+    int sendSingleEncryptedFile(int cmd, TYPE_INDEX file_index, const string& file_ciphertext);
 
     int sendFile(string filename, string path, int SENDING_TYPE);    
     int requestSearch_data(TYPE_INDEX row_index, MatrixType* I_prime);
     int requestBlock_data(TYPE_INDEX block_index, MatrixType* I_prime, bool* block_state_arr);
     int sendBlock_data(TYPE_INDEX block_index, MatrixType *I_prime);
-
+    int requestAndDecryptFile(TYPE_INDEX file_index);
     
     static void* thread_precomputeAesKey_func(void* param);
     static void* thread_getSearchData_func(void* param);

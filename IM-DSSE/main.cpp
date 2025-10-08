@@ -81,7 +81,8 @@ int main(int argc, char **argv)
         int selection = -1;
         printMenu();
         cout << "Select your choice: ";
-        while (!(cin >> selection) || selection < 0 || selection > 5)
+        // MODIFIKASI: Ubah batas atas menjadi 6
+        while (!(cin >> selection) || selection < 0 || selection > 6)
         {
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -107,7 +108,10 @@ int main(int argc, char **argv)
             cin >> str_keyword;
             std::transform(str_keyword.begin(), str_keyword.end(), str_keyword.begin(), ::tolower);
             search_result = 0;
+            start = time_now; 
             client_dsse->searchKeyword(str_keyword, search_result);
+            end = time_now;
+            cout << "SEARCH TIME: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << endl;
             cout << " Keyword *" << str_keyword << "* appeared in " << search_result << " files" << endl;
 
             if (search_result > 0)
@@ -139,7 +143,10 @@ int main(int argc, char **argv)
                     cout << endl << "File not found! Please put/check if the file exists in *data/update* folder" << endl;
                     break;
                 }
+                start = time_now;
                 TYPE_INDEX new_idx = client_dsse->addFile(updating_filename, gcsUpdateFilepath);
+                end = time_now;
+                cout << "ADD TIME: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << endl;
                 if (new_idx != FILE_NOT_EXIST) {
                     reverse_file_map[new_idx] = updating_filename;
                     cout << "   Reverse map diperbarui untuk file baru: " << updating_filename << " dengan indeks " << new_idx << endl;
@@ -169,6 +176,38 @@ int main(int argc, char **argv)
             client_dsse->sendCommandOnly(CMD_SAVESTATE);
             exit(0); 
             break;
+        
+        // MODIFIKASI: Tambahkan case baru untuk dekripsi
+        case 6:
+            {
+                cout << "Masukkan nama file asli yang ingin didekripsi: ";
+                string filename_to_decrypt;
+                cin >> filename_to_decrypt;
+
+                bool found = false;
+                TYPE_INDEX file_idx_to_request = FILE_NOT_EXIST;
+
+                // Cari indeks yang sesuai dengan nama file
+                for (auto const& [idx, name] : reverse_file_map)
+                {
+                    if (name == filename_to_decrypt)
+                    {
+                        file_idx_to_request = idx;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (found)
+                {
+                    client_dsse->requestAndDecryptFile(file_idx_to_request);
+                }
+                else
+                {
+                    cout << "   File dengan nama '" << filename_to_decrypt << "' tidak ditemukan dalam state saat ini." << endl;
+                }
+            }
+            break;
         default:
             break;
         }
@@ -185,5 +224,7 @@ void printMenu()
     cout << "3. Add files" << endl;
     cout << "4. Delete files" << endl;
     cout << "5. Save current state and Exit" << endl;
+    // MODIFIKASI: Tambahkan opsi menu baru
+    cout << "6. Decrypt and view a file" << endl;
     cout << "---------------\n";
 }
